@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
@@ -6,7 +6,7 @@ app.title = "Mi primera chamba con APIs"
 
 movies = [
     {
-        id: 1,
+        "id": 1,
         "title":"The Godfather",
         "overview": "An organized crime dynasty's aging patriarch transfers control of his clandestine empire to his reluctant son.",
         "year": "1972",
@@ -14,7 +14,7 @@ movies = [
         "category": "Drama"
     },
     {
-        id: 2,
+        "id": 2,
         "title":"The Shawshank Redemption",
         "overview": "Two imprisoned",
         "year": "1994",
@@ -42,13 +42,14 @@ def get_movie(id: int):
 def get_movies_by_category(category: str):
     return category
 
-
-# TODO Realizar los endpoints para la venta de computadoras con una lista de 5 registros con los siguientes campos:
-# TODO - id
-# TODO - marca
-# TODO - modelo
-# TODO - color
-# TODO - ram
-# TODO - almacenamiento
-# TODO Realiza los endpoints ya hechos en clase, en lugar de get by categoria sera get by marca, de manera que se obtenga
-# TODO todo el cuerpo de la computadora por la marca, en caso de ser mas de una, mostrara todas las que sean de la misma marca
+@app.post('/movies', tags=['movies'])
+def create_movie(id: int = Body(), title: str = Body(), overview: str = Body(), year: str = Body(), rating: float = Body(), category: str = Body()):
+    movies.append({
+        "id": id,
+        "title": title,
+        "overview": overview,
+        "year": year,
+        "rating": rating,
+        "category": category
+    })
+    return movies

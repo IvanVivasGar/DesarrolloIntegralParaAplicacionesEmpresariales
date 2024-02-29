@@ -8,7 +8,7 @@
 # TODO Realiza los endpoints ya hechos en clase, en lugar de get by categoria sera get by marca, de manera que se obtenga
 # TODO todo el cuerpo de la computadora por la marca, en caso de ser mas de una, mostrara todas las que sean de la misma marca
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
@@ -17,7 +17,7 @@ app.title = "Venta de Computadoras"
 # Lista de computadoras
 computadoras = [
     {
-        id: 0,
+        "id": 0,
         "marca":"Asus",
         "modelo": "Republic of Gamers",
         "color": "Blanca",
@@ -25,7 +25,7 @@ computadoras = [
         "almacenamiento": "1TB"
     },
     {
-        id: 1,
+        "id": 1,
         "marca":"HP",
         "modelo": "Pavilion",
         "color": "Negra",
@@ -33,7 +33,7 @@ computadoras = [
         "almacenamiento": "500GB"
     },
     {
-        id: 2,
+        "id": 2,
         "marca":"HP",
         "modelo": "Vector",
         "color": "Gris",
@@ -41,7 +41,7 @@ computadoras = [
         "almacenamiento": "250GB"
     },
     {
-        id: 3,
+        "id": 3,
         "marca":"Acer",
         "modelo": "Aspire",
         "color": "Azul",
@@ -49,7 +49,7 @@ computadoras = [
         "almacenamiento": "750GB"
     },
     {
-        id: 4,
+        "id": 4,
         "marca":"Lenovo",
         "modelo": "IdeaPad",
         "color": "Roja",
@@ -62,21 +62,17 @@ computadoras = [
 def message():
     return HTMLResponse('<h1>Hello World</h1>')
 
-# Endpoints
-# Obtener todas las computadoras
 @app.get('/computadoras', tags=["computadoras"])
 def get_computadoras():
     return computadoras
 
-# Obtener una computadora por id
 @app.get('/computadoras/{id}', tags=["computadoras"])
 def get_computadora(id: int):
     for item in computadoras:
-        if item['id'] == id:
+        if item["id"] == id:
             return item
     return {'message': 'Computadora no encontrada'}
 
-# Obtener computadoras por marca
 @app.get('/computadoras/', tags=['computadoras'])
 def get_computadora_by_marca(marca: str):
     lista_computadoras = []
@@ -84,3 +80,35 @@ def get_computadora_by_marca(marca: str):
         if item['marca'] == marca:
             lista_computadoras.append(item)
     return lista_computadoras
+
+
+@app.post('/computadoras', tags = ['computadoras'])
+def create_computadora(marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
+    computadoras.append({
+        "id" : computadoras.Len() + 1,
+        "marca" : marca,
+        "modelo" : modelo,
+        "color" : color,
+        "ram" : ram,
+        "almacenamiento" : almacenamiento
+    })
+    return computadoras
+
+@app.put('/computadoras/{id}', tags = ['computadoras'])
+def update_computadora(marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
+    for item in computadoras:
+        if item['id'] == id:
+            item['marca'] = marca
+            item['modelo'] = modelo
+            item['color'] = color
+            item['ram'] = ram
+            item['almacenamiento'] = almacenamiento
+    return computadoras
+
+
+@app.delete('/computadoras/{id}', tags = ['computadoras'])
+def delete_computadora(id: int):
+    for item in computadoras:
+        if item['id'] == id:
+            computadoras.remove(item)
+            return computadoras
