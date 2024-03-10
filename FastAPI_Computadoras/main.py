@@ -1,4 +1,4 @@
-# TODO Realizar los endpoints para la venta de computadoras con una lista de 5 registros con los siguientes campos
+# TODO - Realizar los endpoints para la venta de computadoras con una lista de 5 registros con los siguientes campos
 # TODO - id
 # TODO - marca
 # TODO - modelo
@@ -10,6 +10,7 @@
 
 from fastapi import FastAPI, Body
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 app = FastAPI()
 app.title = "Venta de Computadoras"
@@ -85,7 +86,7 @@ def get_computadora_by_marca(marca: str):
 @app.post('/computadoras', tags = ['computadoras'])
 def create_computadora(marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
     computadoras.append({
-        "id" : computadoras.Len() + 1,
+        "id" : len(computadoras),
         "marca" : marca,
         "modelo" : modelo,
         "color" : color,
@@ -95,7 +96,7 @@ def create_computadora(marca: str = Body(), modelo: str = Body(), color: str = B
     return computadoras
 
 @app.put('/computadoras/{id}', tags = ['computadoras'])
-def update_computadora(marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
+def update_computadora(id: int, marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
     for item in computadoras:
         if item['id'] == id:
             item['marca'] = marca
