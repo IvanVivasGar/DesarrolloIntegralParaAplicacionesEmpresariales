@@ -13,7 +13,10 @@ books = [
         "title" : "harry potter and the chamber of secrets",
         "author" : "k.K Rowling",
         "year" : 1998,
-        "category" : "fantasy",
+        "category" : {
+            "id": 1,
+            "name": "Fantasia",
+        },
         "pages" : 251,
     },
     {
@@ -21,67 +24,119 @@ books = [
         "title" : "harry potter philosopher's stone",
         "author" : "J.K Rowling",
         "year" : 1997,
-        "category" : "fantasy",
+        "category" : {
+            "id": 1,
+            "name": "Fantasia",
+        },
         "pages" : 320,
     }
 ]
 
 categories = [
     {
-        "id":1,
-        "name": "fantasy",
+        "id": 1,
+        "name": "Fantasia",
+    },
+    {
+        "id": 2,
+        "name": "Misterio",
     }
 ]
+
+class Category(BaseModel):
+    id : int = Field(ge = 1)
+    name : str = Field(min_length = 1, max_length = 30)
+    class config:
+        json_schema_extra = {
+            "category" : {
+                "id" : 1,
+                "name" : "Misterio"
+            }
+        }
 
 class Book(BaseModel):
     id: Optional[int] = None
     title: str = Field(min_length=1,max_length=30)
     author: str = Field(min_length=1,max_length=50)
-    year: int
-    category: str = Field(min_length=1,max_length=50)
+    year: str
+    category: Category
     pages: int = Field(ge=1)
-    class Config:
+    class config:
 
-        json_shcema_extra = {
+        json_schema_extra = {
             "book":{
-                "title":"",
-                "author":"",
-                "year":"",
-                "category":"",
-                "pages":""
+                "title": "Titulo del libro",
+                "author": "Autor del libro",
+                "year": "Año de publicacion",
+                "category": {
+                    "id" : 1,
+                    "name" : "Misterio"
+                },
+                "pages": 1
             }
         }
 
+    # THE GLOBAL COUNTER FOR THE IDs
+next_category_id = len(categories) + 1
+next_book_id = len(books) + 1
 
-class Category(BaseModel):
-    id: Optional[int] = None
-    name: str = Field(min_length=1, max_lengt = 25)
-    class Config:
+# BOOKS SECTION
 
-        json_shcema_extra = {
-            "category":{
-            "name":""
-            }
-        }
-
-
-@app.get("/books", tags=["books"], response_model = List[Book],status_code = 200)
+    # GETS ALL THE BOOKS REGISTERED
+@app.get("/books", tags = ["Books"], response_model = List[Book], status_code = 200)
 def get_books() -> List[Book]:
-    return JSONResponse(content=books,status_code=200)
+    return JSONResponse(content = books, status_code=200)
 
-@app.get("/categories", tags=["categories"], response_model = List[Category], status_code = 200)
+    # SEARCH BOOK BY ID
+@app.get("/books/{id}", tags = ["Books"])
+def get_book_id(id : int = Path(ge = 1, le = 2000)):
+    for item in books:
+        if item['id'] == id:
+            return JSONResponse(status_code = 200, content = item)
+    return JSONResponse(status_code = 400, content = {"message" : "No existe un libro con ese identificador."})
+
+    # SEARCH BOOK BY CATEGORY
+@app.get("/books/", tags = ["Books"], response_model = List[Book], status_code = 200)
+def get_book_category(category : str = Query) -> List[Book]:
+    data = [item for item in books if item['category']['name'].lower().strip().replace(" ", "") == category.lower().strip().replace(" ", "")]
+    return JSONResponse(content = data)
+
+# CATEGORIES SECTION
+
+    # GETS ALL THE CATEGORIES
+@app.get("/categories", tags = ["Categories"], response_model = List[Category], status_code = 200)
 def get_categories() -> List[Category]:
     return JSONResponse(content=categories,status_code = 200)
 
-@app.post('/categories', tags = ["categories"])
-def create_category(category: Category) -> dict:
+    # CREATES CATEGORIES, ONLY IF THEY DO NOT EXIST
+@app.post('/categories', tags = ["Categories"])
+def create_category(name: str = Query):
+    global next_category_id
     for item in categories:
-        if category == categories[item]:
+        if name.lower().strip().replace(" ", "") == item["name"].lower().strip().replace(" ", ""):
             return JSONResponse(statuscode = 400, content = {"message" : "Esa categoria ya existe."})
-    categories.append(category)
+    new_category = {"id": next_category_id, "name" : name}
+    categories.append(new_category)
+    next_category_id += 1
+    return JSONResponse(status_code = 200, content = {"message" : "Categoria agregada con exito"})
 
-@app.delete('/categories', tags = ["categories"])
-def delete_category(category: Category) -> dict:
+    # DELETES THE CATEGORY BASED ON THE NAME AND ONLY IF THE CATEGORY DOES NOT HAVE ANY
+    # BOOKS AFFILIATED TO IT
+@app.delete('/categories/{name}', tags = ["Categories"])
+def delete_category(name : str = Query):
     for item in categories:
-        if category == categories[item]:
+        if item['name'].lower().strip().replace(" ", "") == name.lower().strip().replace(" ", ""):
+            for item in books:
+                if item['category']['name'].lower().strip().replace(" ", "") == name.lower().strip().replace(" ", ""):
+                    return JSONResponse(status_code = 400, content = {"message" : "La categoria tiene libros afiliados, no se puede eliminar."})
             categories.remove(item)
+            return JSONResponse(status_code = 200, content = {"message" : "La categoria se elimino correctamente"})
+    return JSONResponse(status_code = 400, content = {"message" : "No existe tal categoria"})
+
+    # MODIFY ANY CATEGORY
+@app.put('/categories/{name}', tags = ["Categories"], status_code = 200)
+def modify_category(name : str = Query, newName : str = Query):
+    for item in categories:
+        if item["name"].lower().strip().replace(" ", "") == name.lower().strip().replace(" ", ""):
+            item["name"] = newName
+            return JSONResponse(status_code = 200, content = item)
