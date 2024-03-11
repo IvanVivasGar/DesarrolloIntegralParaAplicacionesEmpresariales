@@ -7,41 +7,40 @@ app = FastAPI()
 app.title = "PROYECTO 1er Parcial API"
 
 
-books = [
-    {
-        "id" : 1,
-        "title" : "harry potter and the chamber of secrets",
-        "author" : "k.K Rowling",
-        "year" : 1998,
-        "category" : {
-            "id": 1,
-            "name": "Fantasia",
-        },
-        "pages" : 251,
-    },
-    {
-        "id" : 2,
-        "title" : "harry potter philosopher's stone",
-        "author" : "J.K Rowling",
-        "year" : 1997,
-        "category" : {
-            "id": 1,
-            "name": "Fantasia",
-        },
-        "pages" : 320,
-    }
-]
+books = []
+    # {
+    #     "id" : 1,
+    #     "title" : "harry potter and the chamber of secrets",
+    #     "author" : "k.K Rowling",
+    #     "year" : 1998,
+    #     "category" : {
+    #         "id": 1,
+    #         "name": "Fantasia",
+    #     },
+    #     "pages" : 251,
+    # },
+    # {
+    #     "id" : 2,
+    #     "title" : "harry potter philosopher's stone",
+    #     "author" : "J.K Rowling",
+    #     "year" : 1997,
+    #     "category" : {
+    #         "id": 1,
+    #         "name": "Fantasia",
+    #     },
+    #     "pages" : 320,
+    # }
 
-categories = [
-    {
-        "id": 1,
-        "name": "Fantasia",
-    },
-    {
-        "id": 2,
-        "name": "Misterio",
-    }
-]
+categories = []
+    # {
+    #     "id": 1,
+    #     "name": "Fantasia",
+    # },
+    # {
+    #     "id": 2,
+    #     "name": "Misterio",
+    # }
+
 
 class Category(BaseModel):
     id : int = Field(ge = 1)
@@ -54,6 +53,7 @@ class Category(BaseModel):
             }
         }
 
+# Estructura de la clase libro
 class Book(BaseModel):
     id: Optional[int] = None
     title: str = Field(min_length=1,max_length=30)
@@ -76,18 +76,33 @@ class Book(BaseModel):
             }
         }
 
-    # THE GLOBAL COUNTER FOR THE IDs
-next_category_id = len(categories) + 1
-next_book_id = len(books) + 1
+# Contador global para id
+        
+class AutoIncrement:
+    _id = 0
 
-# BOOKS SECTION
+    @classmethod
+    def get_id(cls):
+        cls._id += 1
+        return cls._id
+    
+    def delete_int(cls):
+        cls._id -= 1
+        return cls._id
 
-    # GETS ALL THE BOOKS REGISTERED
+auto_increment_id_categories = AutoIncrement()
+auto_increment_id_books = AutoIncrement()  
+# auto_increment_id_categories = len(categories) + 1
+# next_book_id = len(books) + 1
+
+# =========Seccion Books=========
+
+# Retorna todos los libros registrados
 @app.get("/books", tags = ["Books"], response_model = List[Book], status_code = 200)
 def get_books() -> List[Book]:
     return JSONResponse(content = books, status_code=200)
 
-    # SEARCH BOOK BY ID
+# Buscar libros por id
 @app.get("/books/{id}", tags = ["Books"])
 def get_book_id(id : int = Path(ge = 1, le = 2000)):
     for item in books:
@@ -95,48 +110,54 @@ def get_book_id(id : int = Path(ge = 1, le = 2000)):
             return JSONResponse(status_code = 200, content = item)
     return JSONResponse(status_code = 400, content = {"message" : "No existe un libro con ese identificador."})
 
-    # SEARCH BOOK BY CATEGORY
+# Buscar libros por categoria
 @app.get("/books/", tags = ["Books"], response_model = List[Book], status_code = 200)
 def get_book_category(category : str = Query) -> List[Book]:
     data = [item for item in books if item['category']['name'].lower().strip().replace(" ", "") == category.lower().strip().replace(" ", "")]
     return JSONResponse(content = data)
 
-# CATEGORIES SECTION
+# ==============Seccion categorias==============
 
-    # GETS ALL THE CATEGORIES
+# Retorna todas las categorias
 @app.get("/categories", tags = ["Categories"], response_model = List[Category], status_code = 200)
 def get_categories() -> List[Category]:
     return JSONResponse(content=categories,status_code = 200)
 
-    # CREATES CATEGORIES, ONLY IF THEY DO NOT EXIST
+# Crea categorias solo si no existen
 @app.post('/categories', tags = ["Categories"])
 def create_category(name: str = Query):
-    global next_category_id
+    # Variable id se auto incremento
+    global auto_increment_id_categories 
     for item in categories:
         if name.lower().strip().replace(" ", "") == item["name"].lower().strip().replace(" ", ""):
             return JSONResponse(statuscode = 400, content = {"message" : "Esa categoria ya existe."})
-    new_category = {"id": next_category_id, "name" : name}
+    new_category = {"id": auto_increment_id_categories.get_id(), "name" : name}
     categories.append(new_category)
-    next_category_id += 1
+
     return JSONResponse(status_code = 200, content = {"message" : "Categoria agregada con exito"})
 
-    # DELETES THE CATEGORY BASED ON THE NAME AND ONLY IF THE CATEGORY DOES NOT HAVE ANY
-    # BOOKS AFFILIATED TO IT
+# Eliminar la categoria, solo si no tiene ningun libro dentro
 @app.delete('/categories/{name}', tags = ["Categories"])
 def delete_category(name : str = Query):
+    global auto_increment_id_categories
     for item in categories:
         if item['name'].lower().strip().replace(" ", "") == name.lower().strip().replace(" ", ""):
             for item in books:
                 if item['category']['name'].lower().strip().replace(" ", "") == name.lower().strip().replace(" ", ""):
                     return JSONResponse(status_code = 400, content = {"message" : "La categoria tiene libros afiliados, no se puede eliminar."})
+            auto_increment_id_categories.delete_int
             categories.remove(item)
+
+            for index, category in enumerate(categories, start=1):
+                category['id'] = index
             return JSONResponse(status_code = 200, content = {"message" : "La categoria se elimino correctamente"})
     return JSONResponse(status_code = 400, content = {"message" : "No existe tal categoria"})
 
-    # MODIFY ANY CATEGORY
+# Modificar categorias
 @app.put('/categories/{name}', tags = ["Categories"], status_code = 200)
 def modify_category(name : str = Query, newName : str = Query):
     for item in categories:
         if item["name"].lower().strip().replace(" ", "") == name.lower().strip().replace(" ", ""):
             item["name"] = newName
             return JSONResponse(status_code = 200, content = item)
+        
