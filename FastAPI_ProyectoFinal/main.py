@@ -84,13 +84,12 @@ def create_book(title: str = Body(...), author: str = Body(...), year: str = Bod
     if not categoria_encontrada:
         raise HTTPException(status_code=400, detail="Categoría no válida. Debe crear esta categoría antes de agregar el libro.")
     
-    # Verificar si el ID del libro ya existe
-    if any(book["id"] == category for book in books):
-        raise HTTPException(status_code=400, detail="Ya existe un libro con este ID.")
+    # Obtener el nuevo ID para el libro
+    new_book_id = max(book["id"] for book in books) + 1
 
     # Crear un nuevo libro
     new_book = {
-        "id": category,
+        "id": new_book_id,
         "title": title,
         "author": author,
         "year": year,
