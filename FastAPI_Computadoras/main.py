@@ -1,21 +1,50 @@
-# TODO - Realizar los endpoints para la venta de computadoras con una lista de 5 registros con los siguientes campos
-# TODO - id
-# TODO - marca
-# TODO - modelo
-# TODO - color
-# TODO - ram
-# TODO - almacenamiento
-# TODO Realiza los endpoints ya hechos en clase, en lugar de get by categoria sera get by marca, de manera que se obtenga
-# TODO todo el cuerpo de la computadora por la marca, en caso de ser mas de una, mostrara todas las que sean de la misma marca
-
-from fastapi import FastAPI, Body
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, Body, Path, Query, Request, HTTPException, Depends
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.security.http import HTTPAuthorizationCredentials
+from pydantic import BaseModel, Field
+from typing import Coroutine, Optional, List
+from jwt_manager import create_token, validate_token
+from fastapi.security import HTTPBearer
+from config.database import Session, engine, Base
+from models.computers import Computer as ComputerModel
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 app.title = "Venta de Computadoras"
 
-# Lista de computadoras
+Base.metadata.create_all(bind = engine)
+
+class User(BaseModel):
+    email:str
+    password:str
+
+class JWTBearer(HTTPBearer):
+    async def __call__(self, request: Request):
+        auth = await super().__call__(request)
+        data = validate_token(auth.credentials)
+        if data['email'] != "admin@gmail.com":
+            raise HTTPException(status_code=403, detail="Credenciales Incorrectas")
+
+class Computer(BaseModel):
+    id: Optional[int] = None #Indicamos que es opcional
+    marca: str = Field(min_length = 2, max_length=15)
+    modelo: str = Field(min_length = 2, max_length=50)
+    color: str = Field
+    ram: int = Field(ge=1)
+    almacenamiento: str
+
+    class Config:
+        json_schema_extra = {
+            "example":{
+                "id": 1,
+                "marca": "ASUS",
+                "modelo": "G2409g",
+                "color": "Azul",
+                "ram": 16,
+                "almacenamiento": "250gb"
+            }
+        }
+
 computadoras = [
     {
         "id": 0,
@@ -32,84 +61,68 @@ computadoras = [
         "color": "Negra",
         "ram": 8,
         "almacenamiento": "500GB"
-    },
-    {
-        "id": 2,
-        "marca":"HP",
-        "modelo": "Vector",
-        "color": "Gris",
-        "ram": 4,
-        "almacenamiento": "250GB"
-    },
-    {
-        "id": 3,
-        "marca":"Acer",
-        "modelo": "Aspire",
-        "color": "Azul",
-        "ram": 12,
-        "almacenamiento": "750GB"
-    },
-    {
-        "id": 4,
-        "marca":"Lenovo",
-        "modelo": "IdeaPad",
-        "color": "Roja",
-        "ram": 6,
-        "almacenamiento": "350GB"
     }
 ]
 
-@app.get('/', tags=['Home'])
+@app.get('/', tags=['home'])
 def message():
-    return HTMLResponse('<h1>Hello World</h1>')
+    return HTMLResponse('<h1>Hello world</h1>')
 
-@app.get('/computadoras', tags=["computadoras"])
-def get_computadoras():
-    return computadoras
+@app.post('/login', tags=['auth'])
+def login(user: User):
+    if user.email == "admin@gmail.com" and user.password == "admin":
+        token: str = create_token(user.dict())
+        return JSONResponse(status_code=200, content=token)
 
-@app.get('/computadoras/{id}', tags=["computadoras"])
-def get_computadora(id: int):
-    for item in computadoras:
-        if item["id"] == id:
-            return item
-    return {'message': 'Computadora no encontrada'}
+@app.get('/computers', tags=['computers'], response_model= List[Computer], status_code=200, dependencies=[Depends(JWTBearer())])
+def get_computers() -> List[Computer]:
+    db = Session()
+    result = db.query(ComputerModel).all()
+    return JSONResponse(status_code=200, content= jsonable_encoder(result))
 
-@app.get('/computadoras/', tags=['computadoras'])
-def get_computadora_by_marca(marca: str):
-    lista_computadoras = []
-    for item in computadoras:
-        if item['marca'] == marca:
-            lista_computadoras.append(item)
-    return lista_computadoras
+@app.get('/computers/{id}', tags=['computers'])
+def get_computers(id: int = Path(ge=1, le=2000)) -> Computer:
+    db = Session()
+    result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
+    if not result:
+        return JSONResponse(status_code = 404, content = {'message': 'Not found'})
+    return JSONResponse(status_code = 404, content = jsonable_encoder(result))
 
+@app.get('/computers/', tags=['computers'])
+def get_computers_by_category(category: str = Query(min_length=5, max_length=15)) -> List[Computer]:
+    db = Session()
+    result = db.query(ComputerModel).filter(ComputerModel.category == category).all()
+    return JSONResponse(status_code = 200, content = jsonable_encoder(result))
 
-@app.post('/computadoras', tags = ['computadoras'])
-def create_computadora(marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
-    computadoras.append({
-        "id" : len(computadoras),
-        "marca" : marca,
-        "modelo" : modelo,
-        "color" : color,
-        "ram" : ram,
-        "almacenamiento" : almacenamiento
-    })
-    return computadoras
+@app.post('/computers', tags=['computers'])
+def create_computers(computer: Computer) -> dict:
+    db = Session()
+    new_computer = ComputerModel(**computer.model_dump())
+    db.add(new_computer)
+    db.commit()
+    computadoras.append(computer)
+    return JSONResponse(content={"message": "The computer has been registered"})
 
-@app.put('/computadoras/{id}', tags = ['computadoras'])
-def update_computadora(id: int, marca: str = Body(), modelo: str = Body(), color: str = Body(), ram: int = Body(), almacenamiento: str = Body()):
-    for item in computadoras:
-        if item['id'] == id:
-            item['marca'] = marca
-            item['modelo'] = modelo
-            item['color'] = color
-            item['ram'] = ram
-            item['almacenamiento'] = almacenamiento
-    return computadoras
+@app.put('/computers/{id}', tags=['computers'], response_model= dict, status_code=200)
+def update_computers(id: int, computer: Computer) -> dict:
+    db = Session()
+    result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
+    if not result:
+        return JSONResponse(status_code = 404, content = {'message': 'Not found'})
+    result.title = computer.title
+    result.overview = computer.overview
+    result.year = computer.year
+    result.rating = computer.rating
+    result.category = computer.category
+    db.commit()
+    return JSONResponse(status_code = 200, content = {'message': 'The computer was modified correctly'})
 
-
-@app.delete('/computadoras/{id}', tags = ['computadoras'])
-def delete_computadora(id: int):
-    for item in computadoras:
-        if item['id'] == id:
-            computadoras.remove(item)
-            return computadoras
+@app.delete('/computers/{id}', tags=['computers'], response_model= dict, status_code=200)
+def delete_computers(id: int) -> dict:
+    db = Session()
+    result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
+    if not result:
+        return JSONResponse(status_code = 404, content = {'message': 'Not found'})
+    db.delete(result)
+    db.commit()
+    JSONResponse(status_code = 200, content = {'message': 'The computer was deleted correctly'})
