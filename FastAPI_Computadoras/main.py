@@ -80,7 +80,7 @@ def get_computers() -> List[Computer]:
     result = db.query(ComputerModel).all()
     return JSONResponse(status_code=200, content= jsonable_encoder(result))
 
-@app.get('/computers/{id}', tags=['computers'])
+@app.get('/computers/{id}', tags=['computers'], dependencies=[Depends(JWTBearer())])
 def get_computers(id: int = Path(ge=1, le=2000)) -> Computer:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
@@ -88,13 +88,13 @@ def get_computers(id: int = Path(ge=1, le=2000)) -> Computer:
         return JSONResponse(status_code = 404, content = {'message': 'Not found'})
     return JSONResponse(status_code = 404, content = jsonable_encoder(result))
 
-@app.get('/computers/', tags=['computers'])
+@app.get('/computers/', tags=['computers'], dependencies=[Depends(JWTBearer())])
 def get_computers_by_category(category: str = Query(min_length=5, max_length=15)) -> List[Computer]:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.category == category).all()
     return JSONResponse(status_code = 200, content = jsonable_encoder(result))
 
-@app.post('/computers', tags=['computers'])
+@app.post('/computers', tags=['computers'], dependencies=[Depends(JWTBearer())])
 def create_computers(computer: Computer) -> dict:
     db = Session()
     new_computer = ComputerModel(**computer.model_dump())
@@ -103,7 +103,7 @@ def create_computers(computer: Computer) -> dict:
     computadoras.append(computer)
     return JSONResponse(content={"message": "The computer has been registered"})
 
-@app.put('/computers/{id}', tags=['computers'], response_model= dict, status_code=200)
+@app.put('/computers/{id}', tags=['computers'], response_model= dict, status_code=200, dependencies=[Depends(JWTBearer())])
 def update_computers(id: int, computer: Computer) -> dict:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
@@ -117,7 +117,7 @@ def update_computers(id: int, computer: Computer) -> dict:
     db.commit()
     return JSONResponse(status_code = 200, content = {'message': 'The computer was modified correctly'})
 
-@app.delete('/computers/{id}', tags=['computers'], response_model= dict, status_code=200)
+@app.delete('/computers/{id}', tags=['computers'], response_model= dict, status_code=200, dependencies=[Depends(JWTBearer())])
 def delete_computers(id: int) -> dict:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()

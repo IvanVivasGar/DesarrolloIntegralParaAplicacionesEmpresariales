@@ -46,8 +46,6 @@ class Movie(BaseModel):
             }
         }
 
-
-
 movies = [
     {
         "id": 1,
