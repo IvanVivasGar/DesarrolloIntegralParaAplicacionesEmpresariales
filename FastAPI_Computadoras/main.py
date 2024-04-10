@@ -64,10 +64,6 @@ computadoras = [
     }
 ]
 
-@app.get('/', tags=['home'])
-def message():
-    return HTMLResponse('<h1>Hello world</h1>')
-
 @app.post('/login', tags=['auth'])
 def login(user: User):
     if user.email == "admin@gmail.com" and user.password == "admin":
@@ -86,12 +82,12 @@ def get_computers(id: int = Path(ge=1, le=2000)) -> Computer:
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
     if not result:
         return JSONResponse(status_code = 404, content = {'message': 'Not found'})
-    return JSONResponse(status_code = 404, content = jsonable_encoder(result))
+    return JSONResponse(status_code = 200, content = jsonable_encoder(result))
 
 @app.get('/computers/', tags=['computers'], dependencies=[Depends(JWTBearer())])
-def get_computers_by_category(category: str = Query(min_length=5, max_length=15)) -> List[Computer]:
+def get_computers_by_brand(marca: str = Query(max_length=15)) -> List[Computer]:
     db = Session()
-    result = db.query(ComputerModel).filter(ComputerModel.category == category).all()
+    result = db.query(ComputerModel).filter(ComputerModel.marca == marca).all()
     return JSONResponse(status_code = 200, content = jsonable_encoder(result))
 
 @app.post('/computers', tags=['computers'], dependencies=[Depends(JWTBearer())])
@@ -109,11 +105,11 @@ def update_computers(id: int, computer: Computer) -> dict:
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
     if not result:
         return JSONResponse(status_code = 404, content = {'message': 'Not found'})
-    result.title = computer.title
-    result.overview = computer.overview
-    result.year = computer.year
-    result.rating = computer.rating
-    result.category = computer.category
+    result.marca = computer.marca
+    result.modelo = computer.modelo
+    result.color = computer.color
+    result.ram = computer.ram
+    result.almacenamiento = computer.almacenamiento
     db.commit()
     return JSONResponse(status_code = 200, content = {'message': 'The computer was modified correctly'})
 
@@ -125,4 +121,4 @@ def delete_computers(id: int) -> dict:
         return JSONResponse(status_code = 404, content = {'message': 'Not found'})
     db.delete(result)
     db.commit()
-    JSONResponse(status_code = 200, content = {'message': 'The computer was deleted correctly'})
+    return JSONResponse(status_code = 200, content = {'message': 'The computer was deleted correctly'})
