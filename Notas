@@ -1,0 +1,25 @@
+            // SERVICIOS EN NUESTRA APLICACION
+    Implementar un servicio en el desarrollo en una aplicacion entre los EndPoints y la base
+    de datos ofrece varios beneficios:
+
+        // ABSTRACCION DE LOGICA DE NEGOCIOS
+    Un servicio actua como una capa intermedia entre los EndPoints de la aplicacion y la base
+    de datos.
+
+        // REUTILIZACION DE CODIGO
+    Al encapsular la logica de negocio en un servicio, se promueve la reutilizacion del codigo
+    en toda la aplicacion.
+
+        // SEPARACION DE PREOCUPACIONES
+    Los EndPoints se encargan de manejar las solicitudes HTTP y las respuestas, mientras que el
+    servicio se encarga de la logica de negocio y la interaccion con la base de datos. Esto facilita
+    la comprension del codigo y la resolucion de problemas.
+
+        // FACILIDAD PARA REALIZAR PRUEBAS UNITARIAS
+    Crear dentro de un EndPoint una prueba unitaria donde podras darle la informacion que quieres que te
+    regrese, si te la regresa todo esta correcto, si no, te encargas de arreglar el error.
+
+        // ESCALABILIDAD Y MANTENIBILIDAD
+    Si es necesario realizar cambios en la logica de negocio o en la forma en que se accede a los datos,
+    estos cambios pueden realizarse en el servicio sin afectar a los EndPoints o a la base de datos. Esto
+    facilita la evolucion de la aplicacion a medida que cambian los requisitos o las tecnologias.

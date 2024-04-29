@@ -51,7 +51,7 @@ def create_movie(movie: Movie) -> dict:
 @movie_router.put('/movies/{id}', tags=['movies'], response_model= dict, status_code=200)
 def update_movie(id: int, movie: Movie) -> dict:
     db = Session()
-    result = sb.query(MovieModel).filter(MovieModel.id == id).first()
+    result = db.query(MovieModel).filter(MovieModel.id == id).first()
     if not result:
         return JSONResponse(status_code = 404, content = {'message': 'Not found'})
     result.title = movie.title
