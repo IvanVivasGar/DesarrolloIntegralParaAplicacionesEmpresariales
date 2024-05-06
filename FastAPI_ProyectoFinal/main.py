@@ -156,7 +156,7 @@ def create_book(title: str = Body(), author: str = Body(), year: str = Body(), c
 #         if name.lower().strip().replace(" ", "") == item["Category"].lower().strip().replace(" ", ""):
 #             new_book = {"id": auto_increment_id_books.getid(), "name" : name}
 #             books.append(new_book)
-        
+
 # Modifica un libro
 @app.put('/books/{id}', tags=["Books"], status_code=200)
 def modify_book(id: int = Path(), title: str = Body(), author: str = Body(), year: str = Body(), category: str = Body(), pages: int = Body()):
