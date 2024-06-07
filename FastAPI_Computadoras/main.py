@@ -70,13 +70,13 @@ def login(user: User):
         token: str = create_token(user.dict())
         return JSONResponse(status_code=200, content=token)
 
-@app.get('/computers', tags=['computers'], response_model= List[Computer], status_code=200, dependencies=[Depends(JWTBearer())])
+@app.get('/computers', tags=['computers'], response_model= List[Computer], status_code=200)
 def get_computers() -> List[Computer]:
     db = Session()
     result = db.query(ComputerModel).all()
     return JSONResponse(status_code=200, content= jsonable_encoder(result))
 
-@app.get('/computers/{id}', tags=['computers'], dependencies=[Depends(JWTBearer())])
+@app.get('/computers/{id}', tags=['computers'])
 def get_computers(id: int = Path(ge=1, le=2000)) -> Computer:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
@@ -84,13 +84,13 @@ def get_computers(id: int = Path(ge=1, le=2000)) -> Computer:
         return JSONResponse(status_code = 404, content = {'message': 'Not found'})
     return JSONResponse(status_code = 200, content = jsonable_encoder(result))
 
-@app.get('/computers/', tags=['computers'], dependencies=[Depends(JWTBearer())])
+@app.get('/computers/', tags=['computers'])
 def get_computers_by_brand(marca: str = Query(max_length=15)) -> List[Computer]:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.marca == marca).all()
     return JSONResponse(status_code = 200, content = jsonable_encoder(result))
 
-@app.post('/computers', tags=['computers'], dependencies=[Depends(JWTBearer())])
+@app.post('/computers', tags=['computers'])
 def create_computers(computer: Computer) -> dict:
     db = Session()
     new_computer = ComputerModel(**computer.model_dump())
@@ -99,7 +99,7 @@ def create_computers(computer: Computer) -> dict:
     computadoras.append(computer)
     return JSONResponse(content={"message": "The computer has been registered"})
 
-@app.put('/computers/{id}', tags=['computers'], response_model= dict, status_code=200, dependencies=[Depends(JWTBearer())])
+@app.put('/computers/{id}', tags=['computers'], response_model= dict, status_code=200)
 def update_computers(id: int, computer: Computer) -> dict:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
@@ -113,7 +113,7 @@ def update_computers(id: int, computer: Computer) -> dict:
     db.commit()
     return JSONResponse(status_code = 200, content = {'message': 'The computer was modified correctly'})
 
-@app.delete('/computers/{id}', tags=['computers'], response_model= dict, status_code=200, dependencies=[Depends(JWTBearer())])
+@app.delete('/computers/{id}', tags=['computers'], response_model= dict, status_code=200)
 def delete_computers(id: int) -> dict:
     db = Session()
     result = db.query(ComputerModel).filter(ComputerModel.id == id).first()
